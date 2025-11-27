@@ -1,5 +1,5 @@
 # MLBench
-The aim of this project is to simplify benchmarking process in the field of automated machine learning.
+The aim of this project is to simplify benchmarking process in the field of machine learning.
 
 ### Project status
 The project under active development and new frameworks, tasks, metrics and repositories to be added soon.
@@ -7,7 +7,15 @@ The project under active development and new frameworks, tasks, metrics and repo
     - [AutoGluon.Tabular](https://github.com/autogluon/autogluon).
     - [Imbaml](https://github.com/AxiomAlive/Imbaml).
 - Supported tasks: tabular classification. 
-- Supported metrics: f1, average precision and balanced accuracy. 
+- Supported metrics:
+    - f1
+    - precision
+    - recall
+    - roc_auc
+    - average_precision
+    - balanced_accuracy
+    - mcc
+    - accuracy. 
 - Supported data repositories:
     - [OpenML](https://www.openml.org/).
     - Local filesystem.
