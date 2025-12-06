@@ -21,10 +21,5 @@ dependencies = [
     "loguru",
 ]
 
-[project.optional-dependencies]
-dev = []
-
 [global]
 extra-index-url = "https://download.pytorch.org/whl/cpu"
-# for local development.
-# imbaml = { path = "../imbaml", editable = true }

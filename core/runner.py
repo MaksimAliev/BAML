@@ -15,7 +15,7 @@ from sklearn.exceptions import NotFittedError
 from loguru import logger
 from sklearn.base import BaseEstimator
 
-from core.automl import AutoML, Imbaml, AutoGluon
+from core.automl import AutoML, AutoGluon
 from data.domain import Dataset, Task
 from data.preprocessing import CategoricalFeaturePreprocessor
 from data.repository import OpenMLRepository, DatasetRepository, ZenodoRepository
@@ -23,7 +23,7 @@ from utils.helpers import make_task, split_data_on_train_and_test
 
 
 # TODO: support presets and leaderboard.
-class AutoMLBench:
+class BAML:
     def __init__(
         self,
         automl = 'ag',
@@ -71,32 +71,19 @@ class AutoMLBench:
 
     @final
     def _run_on_dataset(self, dataset: Dataset) -> None:
-        if str(self.automl) == 'Imbaml':
-            if isinstance(dataset.X, np.ndarray) or isinstance(dataset.X, pd.DataFrame):
-                preprocessor = CategoricalFeaturePreprocessor()
-                
-                preprocessed_data = preprocessor.encode(dataset.X, dataset.y.squeeze())
-                assert preprocessed_data is not None
-
-                X, y = preprocessed_data
-                X_train, X_test, y_train, y_test = split_data_on_train_and_test(X, y.squeeze())
-                y_label = dataset.y_label
-            else:
-                raise TypeError(f"pd.DataFrame or np.ndarray was expected. Got: {type(dataset.X)}")
+        if isinstance(dataset.X, np.ndarray):
+            X = pd.DataFrame(data=dataset.X)
+        elif isinstance(dataset.X, pd.DataFrame):
+            X = dataset.X
         else:
-            if isinstance(dataset.X, np.ndarray):
-                X = pd.DataFrame(data=dataset.X)
-            elif isinstance(dataset.X, pd.DataFrame):
-                X = dataset.X
-            else:
-                raise TypeError(f"pd.DataFrame or np.ndarray was expected. Got: {type(dataset.X)}")
-            y_label = X.columns[-1]
+            raise TypeError(f"pd.DataFrame or np.ndarray was expected. Got: {type(dataset.X)}")
+        y_label = X.columns[-1]
 
-            y = X[y_label]
-            X = X.drop([y_label], axis=1)
-            X_train, X_test, y_train, y_test = split_data_on_train_and_test(X, y)
+        y = X[y_label]
+        X = X.drop([y_label], axis=1)
+        X_train, X_test, y_train, y_test = split_data_on_train_and_test(X, y)
 
-        logger.info(f"Loaded dataset:Dataset(id={dataset.id}, name={dataset.name}).")
+        logger.info(f"Dataset(id={dataset.id}, name={dataset.name}).")
         logger.info(f'TRAINING Rows: {X_train.shape[0]}, Columns: {X_train.shape[1]}')
 
         class_belongings = Counter(y_train)
@@ -200,11 +187,9 @@ class AutoMLBench:
     def automl(self, value: Tuple[str, Tuple[Any, ...], Dict[str, Any]]):
         if value[0] == 'ag':
             self._automl = AutoGluon(*value[1], **value[2])
-        elif value[0] == 'imbaml':
-            self._automl = Imbaml(*value[1], **value[2])
         else:
             raise ValueError(
                 f"""
                 Invalid value of automl parameter: {value[0]}.
-                Options available: ['ag', 'imbaml'].
+                Options available: ['ag'].
                 """)

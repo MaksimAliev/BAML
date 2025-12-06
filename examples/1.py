@@ -1,8 +1,8 @@
-from core.runner import AutoMLBench
+from core.runner import BAML
 
 
 def main():
-    bench = AutoMLBench(validation_metric='f1', test_metrics=['average_precision', 'mcc'])
+    bench = BAML(validation_metric='f1', test_metrics=['average_precision', 'mcc'])
     bench.run()
 
 

@@ -14,7 +14,6 @@ from autogluon.core.metrics import make_scorer
 from loguru import logger
 import ray
 
-# from Imbaml.core.main import Optimizer
 from data.domain import Dataset, Task
 
 
@@ -120,89 +119,6 @@ class AutoML(ABC):
 
     def __str__(self):
         return self.__class__.__name__
-
-
-class Imbaml(AutoML):
-    def __init__(
-        self,
-        sanity_check=False,
-        leaderboard=False,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self._fitted_model= None
-        if sanity_check:
-            self._n_evals = 6
-            self._sanity_check = True
-        else:
-            self._n_evals = 60
-            self._sanity_check = False
-        self._leaderboard = leaderboard
-
-        super()._configure_environment()
-        self._configure_environment()
-
-    def fit(
-        self,
-        task: Task,
-    ) -> None:
-        dataset = task.dataset
-        metric = task.metric
-
-        n_evals = self._n_evals
-        if not self._sanity_check:
-            if dataset.size > 50:
-                n_evals //= 4
-            elif dataset.size > 5:
-                n_evals //= 3
-
-        optimizer = Optimizer(
-            metric=metric,
-            re_init=False,
-            n_evals=n_evals,
-            verbosity=self._verbosity,
-            random_state=self._seed
-        )
-
-        fit_results = optimizer.fit(dataset.X, dataset.y)
-        
-        leaderboard = sorted(fit_results, key=lambda el: el.metrics.get('loss', 0))[:10]
-        if self._leaderboard:
-            val_losses = {}
-            for i, result in enumerate(leaderboard):
-                if result.error:
-                    logger.info(f"Trial #{i} had an error: {result.error}.")
-                    continue
-                model = str(result.metrics['config']['search_configurations'].items())
-                val_losses[model] = result.metrics['loss']
-            self._log_val_loss_alongside_fitted_model(val_losses)
-
-        best_trial = fit_results.get_best_result(metric='loss', mode='min')
-
-        best_trial_metrics = getattr(best_trial, 'metrics', None)
-        if best_trial_metrics is None:
-            raise ValueError("Task run failed. No best trial found.")
-
-        best_validation_loss = best_trial_metrics.get('loss')
-        best_algorithm_configuration = best_trial_metrics.get('config').get('search_configurations')
-        best_model_class = best_algorithm_configuration.get('model_class')
-        best_algorithm_configuration.pop('model_class')
-        best_model = best_model_class(**best_algorithm_configuration)
-        
-        model_with_loss = {best_model: best_validation_loss}
-        self._log_val_loss_alongside_fitted_model(model_with_loss)
-
-        best_model.fit(dataset.X, dataset.y)
-
-        self._fitted_model = best_model
-
-    def _configure_environment(self, seed=42) -> None:
-        ray.init(object_store_memory=10**9, log_to_driver=False, logging_level=logging.ERROR)
-
-        os.environ['RAY_IGNORE_UNHANDLED_ERRORS'] = '1'
-        os.environ['TUNE_DISABLE_AUTO_CALLBACK_LOGGERS'] = '1'
-        os.environ['TUNE_MAX_PENDING_TRIALS_PG'] = '1'
 
 
 class AutoGluon(AutoML):
