@@ -32,12 +32,11 @@ class DatasetRepository(ABC):
         return self._datasets
 
 class BinaryImbalancedDatasetRepository(DatasetRepository):
-    def __init__(self):
+    def __init__(self, verbose = False):
         super().__init__()
 
-        # TODO: verbosity should depend on a BAML arg. 
         # TODO: Should it be async?
-        self._raw_datasets = fetch_datasets(data_home='datasets/imbalanced', verbose=True)
+        self._raw_datasets = fetch_datasets(data_home='datasets/imbalanced', verbose=verbose)
 
     @logger.catch
     def load_dataset(self, id: int, X_and_y = False) -> Optional[Dataset]:

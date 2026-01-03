@@ -119,9 +119,8 @@ class BAML:
     @repository.setter
     def repository(self, value: str):
         if value == 'binary-imbalanced':
-            self._repository = BinaryImbalancedDatasetRepository()
-        # elif value == 'openml':
-        #     self._repository = OpenMLRepository()
+            verbosity = self._verbosity >= 2
+            self._repository = BinaryImbalancedDatasetRepository(verbosity)
         else:
             raise ValueError(
                 f"""
