@@ -19,7 +19,7 @@ from sklearn.base import BaseEstimator
 from core._automl import H2O, AutoML, AutoGluon
 from data._domain import Dataset, Task
 from data.repository import DatasetRepository, BinaryImbalancedDatasetRepository, OpenMLDatasetRepository
-from core._helpers import infer_positive_class_of_target, train_test_split
+from core._helpers import infer_positive_target_class, train_test_split
 
 
 class BAML:
@@ -40,6 +40,8 @@ class BAML:
         Also used to test performance of the leader model.
         Supported values: f1, f1_macro, f1_weighted, precision, recall, roc_auc, average_precision, balanced_accuracy,
         mcc and accuracy.
+    seed: int, optional
+        Value, used for controlling randomness during model learning.
     timeout: int, optional
         Time budget in seconds of AutoML training on a single dataset.
     extra_metrics: list of int, optional
@@ -57,6 +59,7 @@ class BAML:
         repository = 'binary-imbalanced',
         automl = 'ag',
         metric = 'f1',
+        seed = 42,
         timeout: Optional[int] = None,
         extra_metrics: Optional[List[str]] = None,
         verbosity: int = 1,
@@ -64,6 +67,7 @@ class BAML:
     ):
         self._automl: AutoML
         self._validation_metric: str
+        self._seed: int
         self._timeout: Optional[int]
         self._verbosity: int
         # TODO: create a common class for fitted models.
@@ -74,6 +78,7 @@ class BAML:
         self.repository = repository
         self.automl = (automl, kwargs)
         self.validation_metric = metric
+        self.seed = seed
         self.timeout = timeout
         self.test_metrics = extra_metrics
 
@@ -115,7 +120,7 @@ class BAML:
 
         pos_class_label = None
         if len(class_belongings) == 2:
-            pos_class_label = infer_positive_class_of_target(class_belongings)
+            pos_class_label = infer_positive_target_class(class_belongings)
 
         if x_and_y:
             training_dataset = Dataset(
@@ -142,7 +147,8 @@ class BAML:
         task  = Task(
             dataset=training_dataset,
             metric=validation_metric,
-            timeout=self.timeout
+            timeout=self.timeout,
+            seed=self.seed
         )
 
         start_time = time.time()
@@ -155,10 +161,6 @@ class BAML:
 
         if str(self.automl) == 'H2O':
             validation_metric += '_weighted'
-        # metrics = {validation_metric}
-        # if self._test_metrics is not None:
-        #     for metric in self._test_metrics:
-        #         metrics.add(metric)
         logger.info(f"Test metrics are {self.test_metrics}")
         
         self.automl.score(self.test_metrics, y_test, y_predicted, pos_class_label)
@@ -222,7 +224,7 @@ class BAML:
         return self._automl
 
     @automl.setter
-    def automl(self, value: Tuple[str, Tuple[Any, ...], Dict[str, Any]]):
+    def automl(self, value: Tuple[str, Dict[str, Any]]):
         if value[0] == 'ag':
             self._automl = AutoGluon(**value[1])
         elif value[0] == 'h2o':
@@ -234,6 +236,14 @@ class BAML:
                 Options available: ['ag', 'h2o'].
                 """)
     
+    @property
+    def seed(self) -> int:
+        return self._seed
+    
+    @seed.setter
+    def seed(self, value: int):
+        self._seed = value
+
     @property
     def timeout(self) -> Optional[int]:
         return self._timeout

@@ -69,11 +69,6 @@ class AutoML(ABC):
             model_log = pprint.pformat(f"Model: {m}", compact=True)
             logger.info(model_log)
 
-    def _configure_environment(self, seed=42) -> None:
-        logger.debug(f"Seed = {seed}.")
-        np.random.seed(seed)
-        self._seed = seed
-
     @final
     def _calculate_metric_score(self, metric: str, *args, **kwargs) -> None:
         y_test = kwargs.get("y_test")
@@ -268,7 +263,7 @@ class H2O(AutoML):
             .to_list()
         h2o_dataset = h2o.H2OFrame(dataset.x, column_types=self._df_dtypes)
 
-        predictor = H2OAutoML(max_runtime_secs=timeout)
+        predictor = H2OAutoML(max_runtime_secs=timeout, seed=task.seed)
         predictor.train(x=list(dataset.x.columns[:-1]), y=str(dataset.x.columns[-1]), training_frame=h2o_dataset)
 
         self._fitted_model = predictor.leader

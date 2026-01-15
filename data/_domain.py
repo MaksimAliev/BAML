@@ -20,3 +20,4 @@ class Task:
     dataset: Dataset
     metric: str
     timeout: Optional[int] = None
+    seed: int = 42
